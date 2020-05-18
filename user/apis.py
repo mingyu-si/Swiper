@@ -49,8 +49,12 @@ def submit_vcode(requset):
 
 def show_profile(requset):
     '''查看个人交友资料'''
+    user = User.objects.get(id=requset.id)
 
-    return render_json()
+    result = {}
+    result.update(user.to_dict())
+    result.update(user.profile.to_dict())
+    return render_json(result)
 
 
 def modify_prodile(requset):
