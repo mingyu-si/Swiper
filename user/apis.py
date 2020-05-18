@@ -4,12 +4,13 @@ from common import keys
 from common import error
 from libs.http import render_json
 from user import logics
-from user.models import User
+from user.models import User, Profile
+from user import forms
 
 
-def get_vcode(requset):
+def get_vcode(request):
     '''获取短信验证码'''
-    phonenum = requset.GET.get('phonenum')
+    phonenum = request.GET.get('phonenum')
     is_successed = logics.send_vcode(phonenum)
     if is_successed:
         return render_json()
@@ -17,10 +18,10 @@ def get_vcode(requset):
         return render_json(code=error.VCODE_SEND_ERR)
 
 
-def submit_vcode(requset):
+def submit_vcode(request):
     '''通过验证码登入、注册'''
-    phonenum = requset.POST.get('phonenum')
-    vcode = requset.POST.get('vcode')
+    phonenum = request.POST.get('phonenum')
+    vcode = request.POST.get('vcode')
 
     # 从缓存中取出验证码
     key = keys.VCODE_K % phonenum
@@ -41,15 +42,15 @@ def submit_vcode(requset):
             user = User.objects.create(phonenum=phonenum, nickname=phonenum)
 
         # 记录用户登入信息
-        requset.session['uid'] = user.id
+        request.session['uid'] = user.id
         return render_json(data=user.to_dict())
     else:
         return render_json(code=error.VCODE_ERR)
 
 
-def show_profile(requset):
+def show_profile(request):
     '''查看个人交友资料'''
-    user = User.objects.get(id=requset.id)
+    user = User.objects.get(id=request.id)
 
     result = {}
     result.update(user.to_dict())
@@ -57,11 +58,26 @@ def show_profile(requset):
     return render_json(result)
 
 
-def modify_prodile(requset):
-    '''修改个人资料及交友资料'''
-    return render_json()
+def modify_prodile(request):
+    '''修改个人及交友资料'''
+    # 定义两个Form 表单
+    user_form = forms.UserForm(request.POST)
+    profile_form = forms.ProfileForm(request.POST)
+
+    # 检查 user_form 和profile_form
+    if not user_form.is_valid() or not profile_form.is_valid():
+        errors = {}
+        errors.update(user_form.errors)
+        errors.update(profile_form.errors)
+        return render_json(errors, error.PROFILE_FORM_ERR)
+    # 更新user
+    User.objects.filter(id=request.uid).update(**user_form.cleaned_data)
+
+    # 更新或创建profile
+    # 如果用户没有调用查看个人交友资料接口，数据库里就没有对应的profile数据，防止直接调用修改个人资料接口
+    Profile.objects.update_or_create(id=request.uid, defaults=profile_form.cleaned_data)
 
 
-def upload_avator(requset):
+def upload_avator(request):
     '''头像上传'''
     return render_json()
