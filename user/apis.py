@@ -1,8 +1,11 @@
+import os
+
 from django.core.cache import cache
 
 from common import keys
 from common import error
 from libs.http import render_json
+from libs.qncloud import upload_to_qncloud
 from user import logics
 from user.models import User, Profile
 from user import forms
@@ -80,4 +83,22 @@ def modify_prodile(request):
 
 def upload_avator(request):
     '''头像上传'''
+    #获取上传的文件对象
+    avator = request.FILES.get('avator')
+    print('------------------')
+    print(request.uid.exists())
+    print('+++++++++++++++++++++++++')
+
+    #将文件保存到硬盘上
+    # filepath, filename = logics.save_avator(request.uid, avator)
+
+    #将文件上传到七牛云
+    # avator_url = upload_to_qncloud(filepath, filename)
+    #
+    # #将图片的链接保存到数据库
+    # User.objects.filter(id=request.uid).update(avator=avator_url)
+    #
+    # #将本地的文件删除
+    # os.remove(filepath)
+
     return render_json()

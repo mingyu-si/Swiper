@@ -7,3 +7,8 @@ YZX_VCODE_ARGS = {
     'mobile': None,
     'param': None
 }
+
+QN_ACCESS_KEY = 'sychPWY-cnh_kvMAr6R8Y2vbYWEJf1UtHIkQQsWk'
+QN_SECRET_KEY = 'I2wt05so9BFDTxtIU0VnmxEO7eTNb17Vf_RVAj5U'
+QN_BUCKET = 'uploadavator'
+QN_BASEURL = 'http://qaj4kw5fi.bkt.clouddn.com/'
