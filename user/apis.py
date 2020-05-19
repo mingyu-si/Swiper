@@ -5,7 +5,8 @@ from django.core.cache import cache
 from common import keys
 from common import error
 from libs.http import render_json
-from libs.qncloud import upload_to_qncloud
+# from libs.qncloud import upload_to_qncloud
+from libs.qncloud import upload_data_to_qncloud
 from user import logics
 from user.models import User, Profile
 from user import forms
@@ -81,24 +82,42 @@ def modify_prodile(request):
     Profile.objects.update_or_create(id=request.uid, defaults=profile_form.cleaned_data)
 
 
+# 方法一：上传源文件
+# def upload_avator(request):
+#     '''个人头像上传'''
+#     # 获取上传的文件对象
+#     avator = request.FILES.get('avator')
+#     # print('------------------')
+#     # print(request.uid.exists())
+#     # print('+++++++++++++++++++++++++')
+#
+#     #将文件保存到硬盘上
+#     filepath, filename = logics.save_avator(request.uid, avator)
+#
+#     #将文件上传到七牛云
+#     avator_url = upload_to_qncloud(filepath, filename)
+#
+#     #将图片的链接保存到数据库
+#     User.objects.filter(id=request.uid).update(avator=avator_url)
+#
+#     #将本地的文件删除
+#     os.remove(filepath)
+#
+#     return render_json()
+
+# 方法二：上传二进制流数据
 def upload_avator(request):
-    '''头像上传'''
-    #获取上传的文件对象
+    '''个人照片上传'''
+    # 获取上传的文件对象
     avator = request.FILES.get('avator')
-    print('------------------')
-    print(request.uid.exists())
-    print('+++++++++++++++++++++++++')
 
-    #将文件保存到硬盘上
-    # filepath, filename = logics.save_avator(request.uid, avator)
+    # 将文件上传到七牛云
 
-    #将文件上传到七牛云
-    # avator_url = upload_to_qncloud(filepath, filename)
-    #
-    # #将图片的链接保存到数据库
-    # User.objects.filter(id=request.uid).update(avator=avator_url)
-    #
-    # #将本地的文件删除
-    # os.remove(filepath)
+    filename = f'{request.uid}'
+    filedata = avator.read()
+    avator_url = upload_data_to_qncloud(filedata, filename)
+
+    # 将图片的链接保存到数据库
+    User.objects.filter(id=request.uid).update(avator=avator_url)
 
     return render_json()

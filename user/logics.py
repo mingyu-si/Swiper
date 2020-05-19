@@ -34,14 +34,14 @@ def send_vcode(mobile):
         print(response.text)
         return False
 
-
-def save_avator(uid, avator_obj):
-    '''将个人形象保存到硬盘上'''
-    filename = f'Avator-{uid}'  # Python3.6 以后的版本支持这种语法
-    filepath = f'/Users/SMY/Desktop/{filename}'
-
-    with open(filepath, 'wb')as fp:
-        for chunk in avator_obj.chunks():
-            fp.write(chunk)  # 分块写入到硬盘
-
-    return filepath, filename
+#方法一：上传源文件
+# def save_avator(uid, avator_obj):
+#     '''将个人形象保存到硬盘上'''
+#     filename = f'Avator-{uid}'  # Python3.6 以后的版本支持这种语法
+#     filepath = f'/Users/SMY/Desktop/{filename}'
+#
+#     with open(filepath, 'wb')as fp:
+#         for chunk in avator_obj.chunks():
+#             fp.write(chunk)  # 分块写入到硬盘
+#
+#     return filepath, filename
