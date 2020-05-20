@@ -29,6 +29,7 @@ pycparser==2.20
 Pygments==2.6.1
 PyMySQL==0.9.3
 pytz==2020.1
+qiniu==7.2.8
 redis==3.5.2
 requests==2.23.0
 six==1.14.0
