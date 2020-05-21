@@ -10,18 +10,23 @@ def rcmd_users(uid):
     user = User.objects.get(id=uid)  # 当前用户
     today = datetime.date.today()
 
+    # 计算目标人群的出生日期范围
     # 最大交友年龄40，出生最早
-    earliest_birthday = today - datetime.timedelta(user.Profile.max_dating_age * 365)  # 1980
+    earliest_birthday = today - datetime.timedelta(user.Profile.max_dating_age * 365)  # timedelta支持天，小时，不支持年类型
     # 最小交友年龄20 ，出生最晚
-    latest_birthday = today - datetime.timedelta(user.Profile.min_dating_age * 365)  # 1990
+    latest_birthday = today - datetime.timedelta(user.Profile.min_dating_age * 365)
 
-    # 满足用户的对象
+    # 取出所有已滑过的用户的 ID 列表
+    sid_list = Swiperd.objects.filter(uid=uid).values_list('sid', flat=True)
+    # values_list方法是只要sid字段，未加flat参数，结果为<Queryset[(24,), (84)]>,加上flat参数结果为<Queryset[24,84]>
+
+    # 从数据库中获取目标用户
     users = User.objects.filter(
         gender=user.profile.dating_gender,
         location=user.profile.dating_location,
         birthday__gte=earliest_birthday,
         birthday__lte=latest_birthday
-    )[:25]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
+    ).exclude(id__in=sid_list)[:25]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
     # TODO:排除已经滑过的用户
     return users
 
