@@ -84,8 +84,7 @@ def modify_prodile(request):
 
 def upload_avator(request):
     '''个人照片上传'''
-    #获取上传的文件对象
+    # 获取上传的文件对象
     avator = request.Files.get('avator')
     logics.handle_avator.delay(request.uid, avator)
     return render_json()
-
