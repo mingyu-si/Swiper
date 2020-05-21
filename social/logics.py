@@ -22,3 +22,14 @@ def rcmd_users(uid):
     )[:25]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
     # TODO:排除已经滑过的用户
     return users
+
+
+def like_someone(uid, sid):
+    '''喜欢(右滑)了某人'''
+    # sid 不能是已经滑过的人
+    # 检查 uid 和 sid 是否相同
+    # sid必须有值
+
+    # 为本次滑动添加一条记录
+
+    # 检查对方是否 向右或向上 滑动过自己， 如果有，则匹配成好友
