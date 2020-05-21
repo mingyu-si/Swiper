@@ -1,6 +1,8 @@
 import datetime
 
 from user.models import User
+from social.models import Swiperd
+from social.models import Friend
 
 
 def rcmd_users(uid):
@@ -26,10 +28,19 @@ def rcmd_users(uid):
 
 def like_someone(uid, sid):
     '''喜欢(右滑)了某人'''
-    # sid 不能是已经滑过的人
+    # 先检查开销小的，后检查开销大的
     # 检查 uid 和 sid 是否相同
     # sid必须有值
+    # sid 不能是已经滑过的人,在数据库中通过联合唯一判断
+    if sid and uid != sid:
+        # 为本次滑动添加一条记录
+        Swiperd.swiper(uid, sid, 'like')
 
-    # 为本次滑动添加一条记录
-
-    # 检查对方是否 向右或向上 滑动过自己， 如果有，则匹配成好友
+        # 检查对方是否喜欢过自己 如果是，则匹配成好友
+        if Swiperd.is_liked(sid, uid):
+            Friend.make_friends(uid, sid)
+            return True
+        else:
+            return False
+    else:
+        return 'ID错误'

@@ -1,5 +1,6 @@
 from libs.http import render_json
 from social import logics
+from social.logics import like_someone
 
 
 def rcmd_user(request):
@@ -11,7 +12,9 @@ def rcmd_user(request):
 
 def like(request):
     '''喜欢(右滑)'''
-    return render_json()
+    sid = int(request.Post.get('sid'))
+    is_matched = like_someone(request.uid, sid)
+    return render_json({'is_matched':is_matched})
 
 
 def superlike(request):
