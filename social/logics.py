@@ -17,7 +17,7 @@ def rcmd_users_from_q(uid):
 
 
 def rcmd_users_from_db(uid, num):
-    '''从数据库中获取物件用户'''
+    '''从数据库中获取用户'''
     user = User.objects.get(id=uid)  # 当前用户
     today = datetime.date.today()
 
@@ -58,11 +58,11 @@ def like_someone(uid, sid):
     # sid必须有值
     # sid 不能是已经滑过的人,在数据库中通过联合唯一判断
     if sid and uid != sid:
-        raise error.SidError
+        raise error.SidError('您的SID错了')
         # 为本次滑动添加一条记录
     Swiperd.swiper(uid, sid, 'like')
 
-    #强制从优先推荐队列删除 sid
+    # 强制从优先推荐队列删除 sid
     name = keys.FIRST_RCMD_Q % uid
     rds.lrem(name, 1, sid)
 
@@ -78,7 +78,7 @@ def superlike_someone(uid, sid):
     '''超级喜欢(上滑)了某人'''
     # 检查 sid 是否正确
     if not sid or uid == sid:
-        raise error.SidError
+        raise error.SidError('您的SID错了')
 
     Swiperd.swiper(uid, sid, 'superlike')
 
@@ -97,3 +97,14 @@ def superlike_someone(uid, sid):
         return False
     else:
         return False
+
+
+def dislike_someone(uid, sid):
+    '''不喜欢(左滑)某人'''
+    if not sid or uid == sid:
+        raise error.SidError('您的SID错了')
+
+    Swiperd.swiper(uid, sid, 'dislike')
+
+    my_first_q = keys.FIRST_RCMD_Q % uid
+    rds.lrem(my_first_q, 1, sid)

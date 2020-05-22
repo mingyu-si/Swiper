@@ -42,11 +42,11 @@ class Swiperd(models.Model):
         '''
         like_stypes = ['like', 'superlike']
 
-        swipe = cls.objects.filter(uid=uid, sid=sid)
-        if swipe.exists():
-            return swipe.stype in like_stypes # 曾经右滑或上滑过对方返回True， 否则返回False
-        else:
-            return None
+        try:
+            swipe = cls.objects.get(uid=uid, sid=sid)
+            return swipe.stype in like_stypes  # 曾经右滑或上滑过对方返回True， 否则返回False
+        except cls.DoesNotExist:
+            return None  # 没有返回到对方，返回None
 
 
 class Friend(models.Model):
