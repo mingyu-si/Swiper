@@ -1,12 +1,23 @@
 import datetime
 
+from common import error
+from common import keys
+from libs.cashe import rds
 from user.models import User
 from social.models import Swiperd
 from social.models import Friend
 
 
-def rcmd_users(uid):
-    '''为用户推荐一些可以匹配的对象'''
+def rcmd_users_from_q(uid):
+    '''从优先推荐队列获取用户'''
+    name = keys.FIRST_RCMD_Q % uid
+    uid_list = rds.lrange(name, 0, 24)
+    uid_list = [int(uid) for uid in uid_list]  # redis都是bytes类型，需转换
+    return User.objects.filter(id__in=uid_list)
+
+
+def rcmd_users_from_db(uid, num):
+    '''从数据库中获取物件用户'''
     user = User.objects.get(id=uid)  # 当前用户
     today = datetime.date.today()
 
@@ -26,9 +37,18 @@ def rcmd_users(uid):
         location=user.profile.dating_location,
         birthday__gte=earliest_birthday,
         birthday__lte=latest_birthday
-    ).exclude(id__in=sid_list)[:25]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
-    # TODO:排除已经滑过的用户
+    ).exclude(id__in=sid_list)[:num]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
+    # 排除已经滑过的用户
     return users
+
+
+def rcmd_users(uid):
+    '''为用户推荐一些可以交友的对象'''
+    users_from_q = set(rcmd_users_from_q(uid))
+    remain = 25 - len(users_from_q)
+    users_from_db = set(rcmd_users_from_db(uid, remain))
+
+    return users_from_q | users_from_db
 
 
 def like_someone(uid, sid):
@@ -38,14 +58,42 @@ def like_someone(uid, sid):
     # sid必须有值
     # sid 不能是已经滑过的人,在数据库中通过联合唯一判断
     if sid and uid != sid:
+        raise error.SidError
         # 为本次滑动添加一条记录
-        Swiperd.swiper(uid, sid, 'like')
+    Swiperd.swiper(uid, sid, 'like')
 
-        # 检查对方是否喜欢过自己 如果是，则匹配成好友
-        if Swiperd.is_liked(sid, uid):
-            Friend.make_friends(uid, sid)
-            return True
-        else:
-            return False
+    #强制从优先推荐队列删除 sid
+    name = keys.FIRST_RCMD_Q % uid
+    rds.lrem(name, 1, sid)
+
+    # 检查对方是否喜欢过自己 如果是，则匹配成好友
+    if Swiperd.is_liked(sid, uid):
+        Friend.make_friends(uid, sid)
+        return True
     else:
-        return 'ID错误'
+        return False
+
+
+def superlike_someone(uid, sid):
+    '''超级喜欢(上滑)了某人'''
+    # 检查 sid 是否正确
+    if not sid or uid == sid:
+        raise error.SidError
+
+    Swiperd.swiper(uid, sid, 'superlike')
+
+    # 强制从 优先推荐队列删除 sid
+    my_first_q = keys.FIRST_RCMD_Q % uid
+    rds.lrem(my_first_q, 1, sid)
+
+    # 检查对方是否喜欢过自己 如果是， 则匹配成好友
+    is_liked = Swiperd.is_liked(sid, uid)
+    if is_liked == True:
+        Friend.make_friends(uid, sid)
+        return True
+    elif is_liked is None:
+        other_first_q = keys.FIRST_RCMD_Q % sid
+        rds.rpush(other_first_q, uid)  # 将 uid 添加到对方的优先推荐队列
+        return False
+    else:
+        return False

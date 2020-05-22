@@ -1,6 +1,8 @@
 from django.db import models
 from django.db import IntegrityError
 
+from common import error
+
 
 class Swiperd(models.Model):
     '''滑动记录'''
@@ -21,18 +23,30 @@ class Swiperd(models.Model):
     def swiper(cls, uid, sid, stype):
         '''增加一次滑动记录'''
         if stype not in ['like', 'superlike', 'dislike']:
-            return '滑动类型错误'
+            raise error.StypeError
 
         try:
             cls.objects.create(uid=uid, sid=sid, stype=stype)
-        except  IntegrityError:
-            return '重复滑动'  # TODO:错误码待处理
+        except IntegrityError:
+            raise error.SwiperRepeatErr
 
     @classmethod
     def is_liked(cls, uid, sid):
-        '''检查是否喜欢过某人'''
+        '''
+        检查是否喜欢过某人
+
+        返回值:
+                喜欢  /   超级喜欢 -> True
+                不喜欢 -> False
+                未滑过 -> None
+        '''
         like_stypes = ['like', 'superlike']
-        return cls.objects.filter(uid=uid, sid=sid, stype__in=like_stypes).exists()
+
+        swipe = cls.objects.filter(uid=uid, sid=sid)
+        if swipe.exists():
+            return swipe.stype in like_stypes # 曾经右滑或上滑过对方返回True， 否则返回False
+        else:
+            return None
 
 
 class Friend(models.Model):
@@ -54,4 +68,7 @@ class Friend(models.Model):
     def make_friends(cls, uid1, uid2):
         '''建立好友关系'''
         uid1, uid2 = cls.sort_uid(uid1, uid2)
-        return cls.objects.create(uid1=uid1, uid2=uid2)
+        try:
+            return cls.objects.create(uid1=uid1, uid2=uid2)
+        except IntegrityError:
+            pass

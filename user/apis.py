@@ -19,7 +19,8 @@ def get_vcode(request):
     if is_successed:
         return render_json()
     else:
-        return render_json(code=error.VCODE_SEND_ERR)
+        raise error.VcodeErr
+
 
 
 def submit_vcode(request):
@@ -49,7 +50,8 @@ def submit_vcode(request):
         request.session['uid'] = user.id
         return render_json(data=user.to_dict())
     else:
-        return render_json(code=error.VCODE_ERR)
+        raise error.VcodeErr
+
 
 
 def show_profile(request):
@@ -73,7 +75,8 @@ def modify_prodile(request):
         errors = {}
         errors.update(user_form.errors)
         errors.update(profile_form.errors)
-        return render_json(errors, error.PROFILE_FORM_ERR)
+        raise error.ProfileErr(errors)
+
     # 更新user
     User.objects.filter(id=request.uid).update(**user_form.cleaned_data)
 

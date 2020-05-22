@@ -18,6 +18,14 @@ class AuthMiddleware(MiddlewareMixin):
             # 检查用户是否登入
             uid = request.session.get('uid')
             if not uid:
-                return render_json(error.LOGIN_REQUIRED)
+                return render_json(error.LoginRequired.code)
             else:
                 request.uid = uid
+
+
+class StatusCodeMiddleware(MiddlewareMixin):
+    '''状态码处理中间件'''
+
+    def process_exception(self, request, exception):  # exception是异常的实例
+        if isinstance(exception, error.LogicError):
+            return render_json(exception.data, code=exception.code)
