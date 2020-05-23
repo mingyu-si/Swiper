@@ -1,4 +1,7 @@
 import datetime
+import time
+
+from django.db.transaction import atomic
 
 from common import error
 from common import keys
@@ -40,6 +43,12 @@ def rcmd_users_from_db(uid, num):
     ).exclude(id__in=sid_list)[:num]  # 懒加载， Django会解析完整语句，然后拼接成他一条SQL，然后发给 MySQL 执行
     # 排除已经滑过的用户
     return users
+
+
+def updata_swipe_data(uid, sid):
+    '''更新 Redis 里的滑动数据'''
+    name = keys.REWID_K % uid
+    rds.hmset(name, {'last_stime': time.time(), 'last_sid': sid})
 
 
 def rcmd_users(uid):
@@ -108,3 +117,68 @@ def dislike_someone(uid, sid):
 
     my_first_q = keys.FIRST_RCMD_Q % uid
     rds.lrem(my_first_q, 1, sid)
+
+
+def rewind_swiper(uid):
+    '''反悔上一次的滑动
+
+    Redis 中记录的数据:{
+        'count':0, #当天的反悔次数
+        'rewind_date':'2020-5-22', #反悔的日期
+        'last_swiper':155445,# 最后一次滑动的时间 时间戳，方便计算
+        'last_sid':98,# 最后一次滑动的 SID
+    }
+    '''
+    # 从 Redis 中取出反悔数据
+    rewind_key = 'Rewind-%s' % uid
+    rewind_data = rds.hgetall(rewind_key)
+    rewind_date = rewind_data.get(b'rewind_date', '1970-01-01')
+    rewind_cnt = rewind_data.get(b'rewind_cnt', 0)
+    last_stime = rewind_data.get(b'last_stime', 0)
+    last_sid = rewind_data.get(b'last_sid', 0)
+
+    # 取出当前时间
+    now = datetime.date.today()
+    today = str(now.date())
+
+    # 检查当天返回次数  超过 3 次 -> 返回状态码
+    if today == rewind_data:
+        if rewind_cnt >= 3:
+            raise error.RewindLimitErr
+        else:
+            rewind_cnt = 0
+
+    # 从数据库中获取最后一条滑动记录并检查是否为None
+    last_swiper = Swiperd.objects.filter(uid=uid).latest('stime')
+    if last_swiper is None:
+        raise error.NonSwiper
+
+    # 检查时间是否超过 5 分钟
+    if (now - last_swiper.stime) > datetime.timedelta(minutes=5):
+        raise error.RewindTimeout
+    with atomic():
+        # 之前匹配成好友， 需要解除好友关系
+        if last_swiper.stype in ['like', 'superlike']:
+            Friend.break_off(uid, last_swiper.sid)
+    # 删除滑动记录
+    last_swiper.delet()
+
+    # 之前是超级喜欢， 需要将 ID 从对方推荐队列删除
+    rds.lrem(keys.FIRST_RCMD_Q % last_swiper.sid, 0, uid)
+
+    # 更新反悔数据
+    rds.hmset(rewind_key, {'rewind_cnt': rewind_cnt + 1, 'rewind_date': today})
+
+
+def who_liked_me(uid):
+    '''过滤出喜欢过我，但是我还没有滑过的人'''
+    # 取出我已经滑过的 sid 列表
+    sid_list = Swiperd.objects.filter(uid=uid).values_list('sid', flat=True)
+
+    # 取出 uid 列表
+    uid_list = Swiperd.objects.filter(sid=uid, stype__in=['like', 'superlike'])\
+                                      .exclude(uid__in=sid_list)\
+                                      .values_list('uid', flat=True)
+    return User.objects.filter(id__in=uid_list)
+
+

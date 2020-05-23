@@ -11,8 +11,8 @@ class Swiperd(models.Model):
         ('superlike', '上滑'),
         ('dislike', '左滑'),
     )
-    uid = models.IntegerField(verbose_name='滑动着的ID')
-    sid = models.IntegerField(verbose_name='被滑动着的ID')
+    uid = models.IntegerField(verbose_name='滑动者的ID')
+    sid = models.IntegerField(verbose_name='被滑动者的ID')
     stype = models.CharField(max_length=10, choices=STYPES, verbose_name='滑动类型')
     stime = models.DateTimeField(auto_now_add=True, verbose_name='滑动时间')
 
@@ -24,7 +24,6 @@ class Swiperd(models.Model):
         '''增加一次滑动记录'''
         if stype not in ['like', 'superlike', 'dislike']:
             raise error.StypeError
-
         try:
             cls.objects.create(uid=uid, sid=sid, stype=stype)
         except IntegrityError:
@@ -72,3 +71,21 @@ class Friend(models.Model):
             return cls.objects.create(uid1=uid1, uid2=uid2)
         except IntegrityError:
             pass
+
+    @classmethod
+    def break_off(cls, uid1, uid2):
+        '''绝交'''
+        uid1, uid2 = cls.sort_uid(uid1, uid2)
+        cls.objects.filter(uid1=uid1, uid2=uid2).delete()
+
+    @classmethod
+    def friend_id_list(cls, uid):
+        query_condition = models.Q(uid1=uid) | models.Q(uid2=uid)
+        frd_record = cls.objects.filter(query_condition)
+        fid_list = []
+        for frd in frd_record:
+            if frd.uid1 == uid:
+                fid_list.append(frd.uid2)
+            else:
+                fid_list.append(frd.uid1)
+        return fid_list

@@ -1,8 +1,8 @@
 from libs.http import render_json
 from social import logics
-from social.logics import like_someone
-from social.models import Swiperd, Friend
+from social.models import Friend
 from common import error
+from user.models import User
 
 
 def rcmd_user(request):
@@ -15,7 +15,7 @@ def rcmd_user(request):
 def like(request):
     '''喜欢(右滑)'''
     sid = int(request.Post.get('sid', 0))
-    is_matched = like_someone(request.uid, sid)
+    is_matched = logics.like_someone(request.uid, sid)
     return render_json({'is_matched': is_matched})
 
 
@@ -35,7 +35,26 @@ def dislike(request):
 
 def rewind(request):
     '''反悔最后一次的滑动
-
     -每天允许反悔3次
     -反悔的记录只能是五分钟之内的
     '''
+    logics.rewind_swiper(request.uid)
+    return render_json()
+
+
+def show_user_liked_me(request):
+    '''查看都有谁喜欢过我
+    - 我还没有滑过对方
+    - 对方右滑或者上滑过自己
+    '''
+    users = logics.who_liked_me(request.uid)
+    result = [user.to_dict() for user in users]
+    return render_json(result)
+
+
+def friends(request):
+    '''查看好友列表'''
+    fid_list = Friend.friend_id_list(request.uid)
+    users = User.objects.filter(id__in=fid_list)
+    result = [user.to_dict() for user in users]
+    return render_json(result)
