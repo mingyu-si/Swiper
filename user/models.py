@@ -28,7 +28,8 @@ class User(models.Model):
         '''用户对于的Profile'''
         # get_or_create()方法有两个返回值,第一个是对象，第二个是布尔值,若是创建出来的，为True，否则为False
         # 动态的为self添加属性，防止多次操作数据库，拿同一个数据
-        self._profile, _ = Profile.objects.get_or_create(id=self.id)
+        if not hasattr(self, '_profile'):
+            self._profile, _ = Profile.objects.get_or_create(id=self.id)
         return self._profile
 
     def to_dict(self):

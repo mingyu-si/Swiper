@@ -35,6 +35,7 @@ def send_vcode(mobile):
             if result['msg'] == 'OK':
                 cache.set(key, args['param'], 900)  # 设置缓存时间
                 return True
+        print('--------------')
         print(response.text)
         return False
 
