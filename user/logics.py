@@ -31,6 +31,7 @@ def send_vcode(mobile):
 
         response = requests.post(config.YZX_API, json=args)
         if response.status_code == 200:
+            print('==================================')
             result = response.json()
             if result['msg'] == 'OK':
                 cache.set(key, args['param'], 900)  # 设置缓存时间
