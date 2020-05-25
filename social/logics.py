@@ -160,14 +160,14 @@ def rewind_swiper(uid):
         # 之前匹配成好友， 需要解除好友关系
         if last_swiper.stype in ['like', 'superlike']:
             Friend.break_off(uid, last_swiper.sid)
-    # 删除滑动记录
-    last_swiper.delet()
+        # 删除滑动记录
+        last_swiper.delet()
 
-    # 之前是超级喜欢， 需要将 ID 从对方推荐队列删除
-    rds.lrem(keys.FIRST_RCMD_Q % last_swiper.sid, 0, uid)
+        # 之前是超级喜欢， 需要将 ID 从对方推荐队列删除
+        rds.lrem(keys.FIRST_RCMD_Q % last_swiper.sid, 0, uid)
 
-    # 更新反悔数据
-    rds.hmset(rewind_key, {'rewind_cnt': rewind_cnt + 1, 'rewind_date': today})
+        # 更新反悔数据
+        rds.hmset(rewind_key, {'rewind_cnt': rewind_cnt + 1, 'rewind_date': today})
 
 
 def who_liked_me(uid):

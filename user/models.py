@@ -23,6 +23,10 @@ class User(models.Model):
     avator = models.CharField(max_length=256, verbose_name='个人形象的URL')
     location = models.CharField(max_length=10, default='北京', choices=LOCATION, verbose_name='常居地')
 
+    vip_id = models.IntegerField(default=1, verbose_name='用户对应的会员ID')
+    vip_end = models.DateTimeField(default='2022-02-22',verbose_name='会员过期时间')
+
+
     @property
     def profile(self):
         '''用户对于的Profile'''
