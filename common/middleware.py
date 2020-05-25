@@ -1,7 +1,11 @@
+import logging
+
 from django.utils.deprecation import MiddlewareMixin
 
 from common import error
 from libs.http import render_json
+
+errlog = logging.getLogger('err')
 
 
 class AuthMiddleware(MiddlewareMixin):
@@ -28,4 +32,5 @@ class StatusCodeMiddleware(MiddlewareMixin):
 
     def process_exception(self, request, exception):  # exception是异常的实例
         if isinstance(exception, error.LogicError):
+            errlog.warning(f'LogicError:{exception.code}:{exception.data}')
             return render_json(exception.data, code=exception.code)

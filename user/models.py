@@ -1,4 +1,8 @@
+import datetime
+
 from django.db import models
+
+from vip.models import Vip
 
 
 class User(models.Model):
@@ -24,8 +28,7 @@ class User(models.Model):
     location = models.CharField(max_length=10, default='北京', choices=LOCATION, verbose_name='常居地')
 
     vip_id = models.IntegerField(default=1, verbose_name='用户对应的会员ID')
-    vip_end = models.DateTimeField(default='2022-02-22',verbose_name='会员过期时间')
-
+    vip_end = models.DateTimeField(default='2022-02-22', verbose_name='会员过期时间')
 
     @property
     def profile(self):
@@ -35,6 +38,32 @@ class User(models.Model):
         if not hasattr(self, '_profile'):
             self._profile, _ = Profile.objects.get_or_create(id=self.id)
         return self._profile
+
+    @property
+    def vip(self):
+        '''用户对应的vip'''
+        if self.is_vip_expired():
+            self.set_vip(1)  # 如果用户 VIP 已过期， 直接将用户的 Vip ID 设置为非会员
+
+        if not hasattr(self, '_vip'):
+            self._vip = Vip.objects.get(id=self.vip_id)
+        return self._vip
+
+    def set_vip(self, vip_id):
+        '''为用户设置 Vip'''
+        # 取出 Vip 数据
+        vip = Vip.objects.get(id=vip_id)
+
+        # 修改用户数据并保存
+        self.vip_id = vip_id
+        self.vip_end = datetime.datetime.now() + datetime.timedelta(vip.duration)
+        self._vip = vip
+        self.save()
+
+    def is_vip_expired(self):
+        '''检查会员是否过期'''
+        now = datetime.datetime.now()
+        return now >= self.vip_end
 
     def to_dict(self):
         return {

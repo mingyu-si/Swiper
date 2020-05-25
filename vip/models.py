@@ -8,6 +8,11 @@ class Vip(models.Model):
     price = models.IntegerField(verbose_name='会员价格')
     duration = models.IntegerField(verbose_name='会员时长')
 
+    def has_per(self, per_name):
+        '''检查当前 VIP 是否具有某权限'''
+        per = Permission.objects.get(name=per_name)
+        return VipPerRelation.objects.filter(vip_level=self.level, per_id=per.id).exists()
+
 
 class Permission(models.Model):
     '''权限表'''
